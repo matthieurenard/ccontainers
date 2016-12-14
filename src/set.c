@@ -88,10 +88,10 @@ struct Set *set_copy(struct Set *dst, const struct Set *src, void * (*cp)(void *
 }
 
 
-int set_add(struct Set *s, void *data)
+struct Set *set_add(struct Set *s, void *data)
 {
 	if (set_in(s, data))
-		return 0;
+		return s;
 
 	if (s->size >= s->allocSize)
 	{
@@ -106,7 +106,7 @@ int set_add(struct Set *s, void *data)
 	}
 	s->tab[s->size++] = data;
 
-	return 1;
+	return s;
 }
 
 unsigned int set_remove(struct Set *s, int (*pred)(const void *, const void *), 
@@ -154,6 +154,11 @@ int set_in(const struct Set *s, const void *data)
 int set_isEmpty(const struct Set *s)
 {
 	return (s->size == 0);
+}
+
+unsigned int set_size(const struct Set *s)
+{
+	return s->size;
 }
 
 struct Set *set_reset(struct Set *s)
