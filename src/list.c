@@ -7,6 +7,7 @@ struct Element
 {
 	void *data;
 	struct Element *next;
+	struct Element *prev;
 };
 
 struct List
@@ -37,7 +38,7 @@ struct List *list_new()
 
 struct List *list_newcp(const struct List *other, void *(*cp)(void *))
 {
-	return list_addList(list_new(), other, cp);
+	return list_appendList(list_new(), other, cp);
 }
 
 void list_free(struct List *l, void (*clean)(void *))
@@ -68,7 +69,7 @@ struct List *list_init(struct List *l)
 	return l;
 }
 
-struct List *list_add(struct List *l, void *data)
+struct List *list_append(struct List *l, void *data)
 {
 	struct Element *e = malloc(sizeof *e);
 
@@ -83,6 +84,7 @@ struct List *list_add(struct List *l, void *data)
 	else
 		l->tail->next = e;
 
+	e->prev = l->tail;
 	l->tail = e;
 
 	e->next = NULL;
@@ -93,17 +95,61 @@ struct List *list_add(struct List *l, void *data)
 	return l;
 }
 
-struct List *list_addList(struct List *dst, const struct List *src, void *(*cp)(void *))
+struct List *list_addHead(struct List *l, void *data)
+{
+	struct Element *e = malloc(sizeof *e);
+
+	if (e == NULL)
+	{
+		perror("malloc list_add:e");
+		exit(EXIT_FAILURE);
+	}
+
+	if (l->tail == NULL)
+		l->tail = e;
+	
+	e->prev = NULL;
+	e->next = l->head;
+	e->data = data;
+
+	l->head = e;
+	l->size++;
+
+	return l;
+}
+
+struct List *list_appendList(struct List *dst, const struct List *src, void *(*cp)(void *))
 {
 	const struct Element *el;
 
 	for (el = src->head ; el != NULL ; el = el->next)
 	{
 		if (cp != NULL)
-			list_add(dst, cp(el->data));
+			list_append(dst, cp(el->data));
 		else
-			list_add(dst, el->data);
+			list_append(dst, el->data);
 	}
+
+	return dst;
+}
+
+/* !! After a call to this function, the second list does not exist anymore, it 
+ * is deallocated, the resulting list is stored in the first one : dst <-- dst . 
+ * src */
+struct List *list_concatList(struct List *dst, struct List *src)
+{
+	if (list_isEmpty(dst))
+		dst->head = src->head;
+	else
+		dst->tail->next = src->head;
+	if (!list_isEmpty(src))
+		src->head->prev = dst->tail;
+	dst->tail = list_isEmpty(src) ? dst->tail : src->tail;
+	dst->size += src->size;
+
+	/* Only free the struct List, do not call list_free, which would free all 
+	 * the structs Element as well */
+	free(src);
 
 	return dst;
 }
@@ -144,6 +190,36 @@ struct List *list_remove(struct List *l, void *data)
 	}
 
 	return l;
+}
+
+void *list_removeHead(struct List *l)
+{
+	struct Element *e = l->head;
+	void *ret = e->data;
+
+	l->head = e->next;
+	if (l->tail == e)
+		l->tail = NULL;
+	l->size--;
+
+	free(e);
+
+	return ret;
+}
+
+void *list_removeLast(struct List *l)
+{
+	struct Element *e = l->tail;
+	void *ret = e->data;
+
+	l->tail = e->prev;
+	if (l->head == e)
+		l->head = NULL;
+	l->size--;
+
+	free(e);
+
+	return ret;
 }
 
 int list_isEmpty(const struct List *l)
