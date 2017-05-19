@@ -20,6 +20,7 @@ struct List
 struct ListIterator
 {
 	struct Element *next;
+	struct Element *prev;
 };
 
 
@@ -192,6 +193,11 @@ struct List *list_remove(struct List *l, void *data)
 	return l;
 }
 
+void *list_first(const struct List *l)
+{
+	return l->head->data;
+}
+
 void *list_removeHead(struct List *l)
 {
 	struct Element *e = l->head;
@@ -205,6 +211,11 @@ void *list_removeHead(struct List *l)
 	free(e);
 
 	return ret;
+}
+
+void *list_last(const struct List *l)
+{
+	return l->tail->data;
 }
 
 void *list_removeLast(struct List *l)
@@ -280,6 +291,39 @@ struct ListIterator *listIterator_first(const struct List *l)
 	}
 
 	ret->next = l->head;
+	ret->prev = NULL;
+
+	return ret;
+}
+
+struct ListIterator *listIterator_last(const struct List *l)
+{
+	struct ListIterator *ret = malloc(sizeof *ret);
+
+	if (ret == NULL)
+	{
+		perror("malloc listIterator_last:ret");
+		exit(EXIT_FAILURE);
+	}
+
+	ret->next = l->tail;
+	ret->prev = (l->tail != NULL) ? l->tail->prev : NULL;
+
+	return ret;
+}
+
+struct ListIterator *listIterator_cp(const struct ListIterator *other)
+{
+	struct ListIterator *ret = malloc(sizeof *ret);
+
+	if (ret == NULL)
+	{
+		perror("malloc listIterator_cp:ret");
+		exit(EXIT_FAILURE);
+	}
+
+	ret->next = other->next;
+	ret->prev = other->prev;
 
 	return ret;
 }
@@ -289,14 +333,32 @@ int listIterator_hasNext(const struct ListIterator *it)
 	return (it->next != NULL);
 }
 
+int listIterator_hasPrev(const struct ListIterator *it)
+{
+	return (it->prev != NULL);
+}
+
 int listIterator_isLast(const struct ListIterator *it)
 {
 	return (it->next != NULL && it->next->next == NULL);
 }
 
+int listIterator_isFirst(const struct ListIterator *it)
+{
+	return (it->prev == NULL);
+}
+
 struct ListIterator *listIterator_next(struct ListIterator *it)
 {
+	it->prev = it->next;
 	it->next = it->next->next;
+	return it;
+}
+
+struct ListIterator *listIterator_prev(struct ListIterator *it)
+{
+	it->next = it->prev;
+	it->prev = it->prev->prev;
 	return it;
 }
 
